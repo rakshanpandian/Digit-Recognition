@@ -1,0 +1,13 @@
+# Core ML libraries
+numpy>=1.21.0
+scikit-learn>=1.0.0
+joblib>=1.1.0
+
+# Image processing
+opencv-python>=4.5.0
+
+# GUI
+PyQt5>=5.15.0
+
+# Optional: for better performance
+scipy>=1.7.0
