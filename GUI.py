@@ -1,17 +1,20 @@
 import sys
 import os
+import joblib
+import numpy as np
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QLabel, QLineEdit,
                              QPushButton, QMessageBox, QFileDialog, QTextEdit)
 from PyQt5.QtGui import QFont, QPixmap, QImage
 from PyQt5.QtCore import Qt
-
 from model_train import load_or_train_model
+
 from digit import predict_digit
 
 
 class MainWindow(QMainWindow):
-    def __init__(self, pca, rf):
+    def __init__(self, scaler, pca, rf):
         super().__init__()
+        self.scaler = scaler
         self.pca = pca
         self.rf = rf
 
@@ -36,7 +39,7 @@ class MainWindow(QMainWindow):
         self.submitbutton.clicked.connect(self.predict)
 
         self.display_label = QLabel(self)
-        self.display_label.setGeometry(175, 330, 250, 250)
+        self.display_label.setGeometry(60, 330, 480, 250)
         self.display_label.setStyleSheet("background-color: black; border: 1px solid white;")
         self.display_label.setAlignment(Qt.AlignCenter)
 
@@ -54,46 +57,51 @@ class MainWindow(QMainWindow):
 
     def predict(self):
         path_text = self.path.text()
-
         if not os.path.exists(path_text):
             QMessageBox.critical(self, "Error", "Invalid Path")
             return
 
         try:
-            predicted, confidence, probs, padded = predict_digit(
-                path_text, self.pca, self.rf
+            # predict_digit now handles segmentation for multiple digits
+            results, combined_view = predict_digit(
+                path_text, self.scaler, self.pca, self.rf
             )
 
-            # Show image
-            h, w = padded.shape
-            qimg = QImage(padded.data, w, h, w, QImage.Format_Grayscale8)
+            h, w = combined_view.shape
+            qimg = QImage(combined_view.data, w, h, w, QImage.Format_Grayscale8)
             self.display_label.setPixmap(
-                QPixmap.fromImage(qimg).scaled(250, 250, Qt.KeepAspectRatio)
+                QPixmap.fromImage(qimg).scaled(460, 200, Qt.KeepAspectRatio)
             )
 
-            # Confidence bars
-            text = "Confidence scores:\n"
-            for i in range(10):
-                bar = "█" * int(probs[i] * 30)
-                text += f"{i}: {probs[i]*100:5.1f}% {bar}\n"
+            full_prediction = "".join([str(r['digit']) for r in results])
 
-            self.confidence_box.setText(text)
+            report = f"Sequence: {full_prediction}\n" + "-" * 30 + "\n"
+            for i, r in enumerate(results):
+                report += f"Digit {i + 1} ({r['digit']}): {r['conf']:.1f}%\n"
+                for j in range(10):
+                    bar = "█" * int(r['probs'][j] * 20)
+                    report += f"  {j}: {bar} {r['probs'][j] * 100:4.1f}%\n"
+                report += "\n"
 
-            QMessageBox.information(
-                self,
-                "Prediction",
-                f"Predicted Digit: {predicted}\nConfidence: {confidence:.1f}%"
-            )
+            self.confidence_box.setText(report)
+            QMessageBox.information(self, "Prediction", f"Full Number Predicted: {full_prediction}")
 
         except Exception as e:
             QMessageBox.critical(self, "Error", str(e))
 
 
 def main():
-    pca, rf = load_or_train_model()
+    model_path = "digit_rf_stable_v1.pkl"
+
+    if os.path.exists(model_path):
+        # Load from file to bypass TensorFlow DLL initialization error
+        scaler, pca, rf = joblib.load(model_path)
+    else:
+        # Only runs module generation if the pkl doesn't exist
+        scaler, pca, rf = load_or_train_model()
 
     app = QApplication(sys.argv)
-    window = MainWindow(pca, rf)
+    window = MainWindow(scaler, pca, rf)
     window.show()
     sys.exit(app.exec_())
 
