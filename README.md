@@ -8,7 +8,6 @@
 ![PyQt5](https://img.shields.io/badge/PyQt5-5.15+-red.svg)
 ![License](https://img.shields.io/badge/license-MIT-brightgreen.svg)
 
-*A classical machine learning approach to digit recognition using PCA and Random Forest*
 
 [Features](#-features) • [Installation](#-installation) • [Usage](#-usage) • [How It Works](#-how-it-works) • [Team](#-team)
 
@@ -220,7 +219,7 @@ shift_y = 14 - cy
 
 This project was developed as a mini-project for Linear Algebra course.
 
-| Name | Roll Number |
+| Name | SRN |
 |------|-------------|
 | Pranav Chandrasekar | CS332 |
 | Pranav S P | CS337 |
